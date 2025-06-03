@@ -39,7 +39,7 @@ switch(cardnumber){
          }
           }   
 	case 6: console.log("Discover");
-		for(index = 0; index <= 15; index++){
+		for(index == 0; index <= 15; index++){
 			if index = 15 && index0 = 6 {
 		console.log("Discover");
 			}else{ 
