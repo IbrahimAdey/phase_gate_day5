@@ -1,41 +1,77 @@
-function calculateCycle(startDate, cycleLength, periodLength) {
-  const start = new Date(startDate);
-  const nextPeriod = new Date(start);
-  nextPeriod.setDate(start.getDate() + cycleLength);
+const readline = require("readline");
 
-  const ovulation = new Date(start);
-  ovulation.setDate(start.getDate() + Math.floor(cycleLength / 2));
+class MenstrualCycle {
+  constructor(lastPeriodStart, cycleLength, periodLength) {
+    this.lastPeriodStart = new Date(lastPeriodStart);
+    this.cycleLength = cycleLength;
+    this.periodLength = periodLength;
+  }
 
-  const fertileStart = new Date(ovulation);
-  fertileStart.setDate(ovulation.getDate() - 2);
+  addDays(date, days) {
+    let result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+  }
 
-  const fertileEnd = new Date(ovulation);
-  fertileEnd.setDate(ovulation.getDate() + 2);
+  formatDate(date) {
+    return date.toISOString().slice(0, 10);
+  }
 
-  const safe1Start = new Date(start);
-  safe1Start.setDate(start.getDate() + periodLength);
+  calculateNextPeriod() {
+    return this.addDays(this.lastPeriodStart, this.cycleLength);
+  }
 
-  const safe1End = new Date(fertileStart);
-  safe1End.setDate(fertileStart.getDate() - 1);
+  calculateOvulation() {
+    return this.addDays(this.lastPeriodStart, Math.floor(this.cycleLength / 2));
+  }
 
-  const safe2Start = new Date(fertileEnd);
-  safe2Start.setDate(fertileEnd.getDate() + 1);
+  calculateFertileWindow() {
+    const ovulation = this.calculateOvulation();
+    return [this.addDays(ovulation, -2), this.addDays(ovulation, 2)];
+  }
 
-  const safe2End = new Date(nextPeriod);
-  safe2End.setDate(nextPeriod.getDate() - 1);
+  calculateSafePeriods() {
+    const [fertileStart, fertileEnd] = this.calculateFertileWindow();
+    const safe1Start = this.addDays(this.lastPeriodStart, this.periodLength);
+    const safe1End = this.addDays(fertileStart, -1);
+    const safe2Start = this.addDays(fertileEnd, 1);
+    const safe2End = this.addDays(this.calculateNextPeriod(), -1);
 
-  return {
-    next_period_start: nextPeriod.toISOString().slice(0, 10),
-    next_ovulation_date: ovulation.toISOString().slice(0, 10),
-    fertile_window: [
-      fertileStart.toISOString().slice(0, 10),
-      fertileEnd.toISOString().slice(0, 10)
-    ],
-    safe_periods: [
-      [safe1Start.toISOString().slice(0, 10), safe1End.toISOString().slice(0, 10)],
-      [safe2Start.toISOString().slice(0, 10), safe2End.toISOString().slice(0, 10)]
-    ]
-  };
+    return [
+      [safe1Start, safe1End],
+      [safe2Start, safe2End],
+    ];
+  }
+
+  getCycleInfo() {
+    const nextPeriod = this.calculateNextPeriod();
+    const ovulation = this.calculateOvulation();
+    const [fertileStart, fertileEnd] = this.calculateFertileWindow();
+    const safePeriods = this.calculateSafePeriods();
+
+    return (
+      Next Period Start: ${this.formatDate(nextPeriod)}\n +
+      Ovulation Date: ${this.formatDate(ovulation)}\n +
+      Fertile Window: ${this.formatDate(fertileStart)} to ${this.formatDate(fertileEnd)}\n +
+      Safe Periods:\n +
+      `  1. ${this.formatDate(safePeriods[0][0])} to ${this.formatDate(safePeriods[0][1])}\n` +
+      `  2. ${this.formatDate(safePeriods[1][0])} to ${this.formatDate(safePeriods[1][1])}`
+    );
+  }
 }
 
-module.exports = calculateCycle;
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+
+rl.question("Enter the start date of your last period (yyyy-mm-dd): ", (lastPeriodStart) => {
+  rl.question("Enter your cycle length (in days, e.g. 28): ", (cycleLength) => {
+    rl.question("Enter your period length (in days, e.g. 5): ", (periodLength) => {
+      const cycle = new MenstrualCycle(lastPeriodStart, parseInt(cycleLength), parseInt(periodLength));
+      console.log("\n=== Your Menstrual Cycle Info ===");
+      console.log(cycle.getCycleInfo());
+      rl.close();
+    });
+  });
+});
